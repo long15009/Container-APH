@@ -68,6 +68,22 @@ export default function App() {
     SAMPLE_CARGO.forEach((sample, index) => addCargo({ ...sample, color: getPaletteColor(nextColorIndex + index) }));
   }
 
+  /** Nhập nhiều loại hàng từ file; replace = true thì thay toàn bộ danh sách (màu đánh lại từ đầu). */
+  function importCargo(items, replace) {
+    const firstColorIndex = replace ? 0 : nextColorIndex;
+    const created = items.map((item, index) => {
+      counterRef.current += 1;
+      return { ...item, color: getPaletteColor(firstColorIndex + index), id: `cargo-${counterRef.current}` };
+    });
+    setCargoList((list) => (replace ? created : [...list, ...created]));
+    setNextColorIndex(firstColorIndex + items.length);
+  }
+
+  function clearAllCargo() {
+    setCargoList([]);
+    setNextColorIndex(0);
+  }
+
   let disabledReason = null;
   if (!vehicle) disabledReason = 'Kích thước / tải trọng phương tiện chưa hợp lệ';
   else if (cargoList.length === 0) disabledReason = 'Thêm ít nhất 1 loại hàng để tính toán';
@@ -105,6 +121,8 @@ export default function App() {
             onUpdate={updateCargo}
             onDelete={deleteCargo}
             onLoadSample={loadSample}
+            onImport={importCargo}
+            onClearAll={clearAllCargo}
           />
           <PalletSettings settings={palletSettings} onChange={setPalletSettings} palletizedCount={palletizedCount} />
         </Sidebar>

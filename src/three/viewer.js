@@ -44,9 +44,10 @@ export function createViewer(mountElement) {
    * Cập nhật nội dung hiển thị.
    * @param container {length,width,height} (cm)
    * @param placedItems kết quả packing (có thể rỗng)
-   * @param colorByTypeId Map typeId -> màu
+   * @param typeInfoById Map typeId -> { color, label }
+   * @param options { showDimensions } — in kích thước lên các mặt khối
    */
-  function setData(container, placedItems, colorByTypeId) {
+  function setData(container, placedItems, typeInfoById, options) {
     const containerKey = `${container.length}x${container.width}x${container.height}`;
     currentContainer = container;
     if (containerKey !== currentContainerKey) {
@@ -54,7 +55,7 @@ export function createViewer(mountElement) {
       containerGroup = replaceGroup(containerGroup, buildContainerMesh(container));
       fitCamera();
     }
-    cargoGroup = replaceGroup(cargoGroup, buildCargoMeshes(container, placedItems, colorByTypeId));
+    cargoGroup = replaceGroup(cargoGroup, buildCargoMeshes(container, placedItems, typeInfoById, options));
     applyFilter();
   }
 

@@ -2,12 +2,13 @@ import { useState } from 'react';
 import Accordion from '../ui/Accordion.jsx';
 import Button from '../ui/Button.jsx';
 import CargoForm from './CargoForm.jsx';
+import CargoImport from './CargoImport.jsx';
 import CargoList from './CargoList.jsx';
 import { formatNumber } from '../../utils/format.js';
 import { countPieces } from '../../engine/packing.js';
 
 /** Khu vực nhập danh sách hàng hóa: danh sách đã thêm + form thêm mới. */
-export default function CargoPanel({ cargoList, nextColor, onAdd, onUpdate, onDelete, onLoadSample }) {
+export default function CargoPanel({ cargoList, nextColor, onAdd, onUpdate, onDelete, onLoadSample, onImport, onClearAll }) {
   const [editingId, setEditingId] = useState(null);
   const totalPieces = countPieces(cargoList);
 
@@ -20,6 +21,25 @@ export default function CargoPanel({ cargoList, nextColor, onAdd, onUpdate, onDe
   return (
     <Accordion title="2. Hàng hóa" badge={badge}>
       <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <CargoImport hasExistingCargo={cargoList.length > 0} onImport={onImport} />
+          {cargoList.length > 0 && (
+            <Button
+              variant="danger"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                if (window.confirm(`Xóa toàn bộ ${cargoList.length} loại hàng?`)) {
+                  setEditingId(null);
+                  onClearAll();
+                }
+              }}
+            >
+              Xóa tất cả
+            </Button>
+          )}
+        </div>
+
         {cargoList.length === 0 ? (
           <p className="rounded-md border border-dashed border-slate-300 p-3 text-center text-xs text-slate-500">
             Chưa có loại hàng nào.{' '}

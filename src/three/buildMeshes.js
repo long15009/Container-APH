@@ -1,6 +1,7 @@
 // Dựng mesh container và mesh từng kiện hàng từ dữ liệu (cm).
 // Mọi mesh được đặt trong 1 group gốc thu nhỏ theo CM_TO_SCENE, tâm sàn container nằm ở gốc tọa độ.
 import * as THREE from 'three';
+import { createLabelMaterialCache } from './labelMaterials.js';
 
 export const CM_TO_SCENE = 0.01; // 1 đơn vị scene = 1 m
 
@@ -86,10 +87,19 @@ export function updateSectionPlane(containerGroup, container, axis, cut, visible
   }
 }
 
-/** Mỗi kiện hàng đã xếp là 1 khối hộp màu theo loại hàng, có viền đen. */
-export function buildCargoMeshes(container, placedItems, colorByTypeId) {
+/**
+ * Mỗi kiện hàng đã xếp là 1 khối hộp màu theo loại hàng, có viền đen.
+ * @param typeInfoById Map typeId -> { color, label } (label: chữ kích thước in lên mặt khối)
+ * @param options.showDimensions in kích thước lên các mặt khối hay không
+ */
+export function buildCargoMeshes(container, placedItems, typeInfoById, { showDimensions = false } = {}) {
   const group = createRootGroup(container);
   const materials = new Map();
+  const labeledMaterials = createLabelMaterialCache(getMaterial);
+
+  function boxMaterial(info, l, h, w) {
+    return showDimensions && info.label ? labeledMaterials(info.color, info.label, l, h, w) : getMaterial(info.color);
+  }
 
   function getMaterial(color) {
     if (!materials.has(color)) {
@@ -123,13 +133,14 @@ export function buildCargoMeshes(container, placedItems, colorByTypeId) {
   }
 
   for (const item of placedItems) {
-    const material = getMaterial(colorByTypeId.get(item.typeId) || '#9ca3af');
+    const info = typeInfoById.get(item.typeId) || { color: '#9ca3af', label: '' };
     if (!item.pallet) {
-      addBlock(item, item.x, item.y, item.z, item.l, item.h, item.w, material, edgeMaterial);
+      addBlock(item, item.x, item.y, item.z, item.l, item.h, item.w, boxMaterial(info, item.l, item.h, item.w), edgeMaterial);
       continue;
     }
     addPalletBase(item);
     for (const box of item.pallet.boxes) {
+      const material = boxMaterial(info, box.l, box.h, box.w);
       addBlock(item, item.x + box.x, item.y + box.y, item.z + box.z, box.l, box.h, box.w, material, edgeMaterial);
     }
   }
@@ -154,10 +165,17 @@ export function buildCargoMeshes(container, placedItems, colorByTypeId) {
   return group;
 }
 
-/** Giải phóng geometry/material riêng của group (giữ lại tài nguyên dùng chung). */
+/** Giải phóng geometry/material/texture riêng của group (giữ lại tài nguyên dùng chung). */
 export function disposeGroup(group) {
+  const disposed = new Set();
+  function dispose(resource) {
+    if (!resource || sharedResources.has(resource) || disposed.has(resource)) return;
+    disposed.add(resource);
+    resource.map?.dispose();
+    resource.dispose();
+  }
   group.traverse((object) => {
-    if (object.geometry && !sharedResources.has(object.geometry)) object.geometry.dispose();
-    if (object.material && !sharedResources.has(object.material)) object.material.dispose();
+    dispose(object.geometry);
+    for (const material of [object.material].flat()) dispose(material);
   });
 }

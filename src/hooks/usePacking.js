@@ -22,7 +22,7 @@ export function usePacking(vehicle, cargoList, palletConfig) {
     // Nhường 1 nhịp cho trình duyệt vẽ trạng thái "Đang tính..." trước khi chạy thuật toán đồng bộ.
     setTimeout(() => {
       const plan = planLoading(vehicle, cargoList, palletConfig);
-      setResult({ ...plan, vehicle, cargoList, palletConfig, signature });
+      setResult({ ...plan, vehicle, cargoList, palletConfig, signature, computedAt: new Date() });
       setIsCalculating(false);
     }, 30);
   }, [vehicle, cargoList, palletConfig, currentSignature]);

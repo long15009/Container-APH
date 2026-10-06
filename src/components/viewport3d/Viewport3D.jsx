@@ -3,14 +3,28 @@ import { createViewer } from '../../three/viewer.js';
 import { DEFAULT_VIEW_FILTER, isItemVisible } from '../../three/visibility.js';
 import SectionControl from './SectionControl.jsx';
 import ViewportLegend from './ViewportLegend.jsx';
+import { formatNumber } from '../../utils/format.js';
+import { DEFAULT_LENGTH_UNIT, fromCm } from '../../utils/units.js';
 
 /** Bọc canvas Three.js: hiển thị khung phương tiện và các kiện hàng đã xếp. */
 export default function Viewport3D({ vehicle, placedItems, cargoList, isCalculating }) {
   const mountRef = useRef(null);
   const viewerRef = useRef(null);
   const [filter, setFilter] = useState(DEFAULT_VIEW_FILTER);
+  const [showDimensions, setShowDimensions] = useState(true);
 
-  const colorByTypeId = useMemo(() => new Map(cargoList.map((cargo) => [cargo.id, cargo.color])), [cargoList]);
+  // Chữ in lên khối: kích thước D×R×C theo đúng đơn vị người dùng đã nhập cho loại hàng đó.
+  const typeInfoById = useMemo(
+    () =>
+      new Map(
+        cargoList.map((cargo) => {
+          const unit = cargo.unit || DEFAULT_LENGTH_UNIT;
+          const dims = [cargo.length, cargo.width, cargo.height].map((v) => formatNumber(fromCm(v, unit)));
+          return [cargo.id, { color: cargo.color, label: `${dims.join('×')} ${unit}` }];
+        }),
+      ),
+    [cargoList],
+  );
   const visibleCount = useMemo(
     () => placedItems.filter((item) => isItemVisible(item, vehicle, filter)).length,
     [placedItems, vehicle, filter],
@@ -35,8 +49,8 @@ export default function Viewport3D({ vehicle, placedItems, cargoList, isCalculat
   }, []);
 
   useEffect(() => {
-    viewerRef.current?.setData(vehicle, placedItems, colorByTypeId);
-  }, [vehicle, placedItems, colorByTypeId]);
+    viewerRef.current?.setData(vehicle, placedItems, typeInfoById, { showDimensions });
+  }, [vehicle, placedItems, typeInfoById, showDimensions]);
 
   useEffect(() => {
     viewerRef.current?.setFilter(filter);
@@ -73,6 +87,16 @@ export default function Viewport3D({ vehicle, placedItems, cargoList, isCalculat
           >
             Góc nhìn mặc định
           </button>
+          {placedItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowDimensions((value) => !value)}
+              aria-pressed={showDimensions}
+              className="rounded-md border border-slate-200 bg-white/90 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm hover:bg-white"
+            >
+              {showDimensions ? 'Ẩn kích thước' : 'Hiện kích thước'}
+            </button>
+          )}
           {isFiltered && (
             <button
               type="button"
